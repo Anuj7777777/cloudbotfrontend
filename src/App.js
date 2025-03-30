@@ -1,56 +1,50 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "./App.css";
 
-function App() {
-  const [message, setMessage] = useState("");
-  const [chat, setChat] = useState([]);
+const App = () => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
 
   const sendMessage = async () => {
-    if (!message) return;
-
-    const userMessage = { sender: "User", text: message };
-    setChat([...chat, userMessage]);
+    if (!input.trim()) return;
+    
+    const newMessages = [...messages, { text: input, sender: "user" }];
+    setMessages(newMessages);
+    setInput("");
 
     try {
       const response = await axios.post(
-        "https://chatbot-function.azurewebsites.net/api/chatbot", 
-        { message }
+        "https://chatbot-function.azurewebsites.net/api/chatbot",
+        { message: input }
       );
-      const botMessage = { sender: "Bot", text: response.data.reply };
-      setChat([...chat, userMessage, botMessage]);
+      setMessages([...newMessages, { text: response.data.reply, sender: "bot" }]);
     } catch (error) {
-      console.error("Error sending message", error);
+      setMessages([...newMessages, { text: "Error reaching the server.", sender: "bot" }]);
     }
-
-    setMessage("");
   };
 
   return (
-    <div className="h-screen flex flex-col items-center bg-gray-100 p-4">
-      <div className="w-full max-w-md bg-white p-4 rounded-lg shadow-lg">
-        <h2 className="text-xl font-bold">Chatbot</h2>
-        <div className="h-64 overflow-y-auto border p-2">
-          {chat.map((msg, i) => (
-            <div key={i} className={`p-2 ${msg.sender === "User" ? "text-right" : "text-left"}`}>
-              <strong>{msg.sender}:</strong> {msg.text}
-            </div>
-          ))}
-        </div>
-        <div className="mt-2 flex">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="flex-1 p-2 border rounded"
-            placeholder="Type a message..."
-          />
-          <button onClick={sendMessage} className="ml-2 bg-blue-500 text-white px-4 py-2 rounded">
-            Send
-          </button>
-        </div>
+    <div className="chat-container">
+      <h2>🌈 AI Chatbot</h2>
+      <div className="chat-box">
+        {messages.map((msg, index) => (
+          <div key={index} className={`message ${msg.sender}`}>
+            {msg.text}
+          </div>
+        ))}
+      </div>
+      <div className="input-area">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+        />
+        <button onClick={sendMessage}>Send</button>
       </div>
     </div>
   );
-}
+};
 
 export default App;
