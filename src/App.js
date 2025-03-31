@@ -1,58 +1,100 @@
-import React, { useState } from "react";
-import axios from "axios";
-import "./App.css";
+import { useState } from "react";
 
-const API_URL = "https://chatbot-function.azurewebsites.net/api/chatbot"; // Replace with your actual API
-
-const App = () => {
+export default function Chatbot() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  // Function to send a message to the backend
   const sendMessage = async () => {
     if (!input.trim()) return;
-
-    const newMessages = [...messages, { text: input, sender: "user" }];
-    setMessages(newMessages);
+    
+    const userMessage = { sender: "You", text: input };
+    setMessages([...messages, userMessage]);
     setInput("");
-    setLoading(true);
-
+    
     try {
-      const response = await axios.post(API_URL, { message: input });
-      setMessages([...newMessages, { text: response.data.reply, sender: "bot" }]);
+      const response = await fetch("https://chatbot-function.azurewebsites.net/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input })
+      });
+      
+      const data = await response.json();
+      const botMessage = { sender: "Chatbot", text: data.response };
+      setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      console.error("Error reaching the server:", error);
-      setMessages([...newMessages, { text: "⚠️ Server error. Try again!", sender: "bot" }]);
-    } finally {
-      setLoading(false);
+      console.error("Error communicating with chatbot:", error);
     }
   };
 
   return (
     <div className="chat-container">
-      <h2>🌈 AI Chatbot</h2>
       <div className="chat-box">
         {messages.map((msg, index) => (
-          <div key={index} className={`message ${msg.sender}`}>
-            {msg.text}
+          <div key={index} className={`message ${msg.sender === "You" ? "user" : "bot"}`}>
+            <strong>{msg.sender}: </strong>{msg.text}
           </div>
         ))}
-        {loading && <div className="message bot">⏳ Thinking...</div>}
       </div>
-      <div className="input-area">
+      <div className="input-box">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message..."
         />
-        <button onClick={sendMessage} disabled={loading}>
-          {loading ? "Sending..." : "Send"}
-        </button>
+        <button onClick={sendMessage}>Send</button>
       </div>
+      <style>{`
+        .chat-container {
+          max-width: 400px;
+          margin: auto;
+          display: flex;
+          flex-direction: column;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        .chat-box {
+          height: 300px;
+          overflow-y: auto;
+          padding: 10px;
+          background: #f9f9f9;
+        }
+        .message {
+          margin: 5px 0;
+          padding: 8px;
+          border-radius: 5px;
+        }
+        .user {
+          background: #0078ff;
+          color: white;
+          text-align: right;
+        }
+        .bot {
+          background: #e0e0e0;
+          text-align: left;
+        }
+        .input-box {
+          display: flex;
+          padding: 10px;
+          background: white;
+        }
+        .input-box input {
+          flex: 1;
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+        }
+        .input-box button {
+          margin-left: 5px;
+          padding: 8px 12px;
+          background: #0078ff;
+          color: white;
+          border: none;
+          cursor: pointer;
+          border-radius: 5px;
+        }
+      `}</style>
     </div>
   );
-};
-
-export default App;
+}
